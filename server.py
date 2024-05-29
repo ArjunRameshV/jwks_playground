@@ -3,9 +3,11 @@ import json
 import glob
 import os
 
-from flask import Flask, jsonify
 from cryptography.hazmat.primitives import serialization
-from jwt import PyJWK, PyJWKSet
+from datetime import datetime, timedelta
+from flask import Flask, abort, jsonify
+from jwt import PyJWK, PyJWKSet, encode
+from markupsafe import escape
 
 app = Flask(__name__)
 
@@ -43,5 +45,26 @@ def jwks():
     jwks = {"keys": [public_key_to_jwk(key_id, key) for key_id, key in public_keys]}
     return jwks
 
+@app.route('/generate_encoded_message/<int:key_id>')
+def encoded_message(key_id):
+    try:
+        with open(f"keys/{key_id}/private_key.pem", "rb") as f:
+            private_key = f.read()
+    except Exception:
+        print(f"key_id: {key_id} not found")
+        abort(404)
+
+    # Create a JWT
+    payload = {
+        "sub": "1234567890",
+        "name": "John Doe",
+        "iat": datetime.utcnow(),
+        "exp": datetime.utcnow() + timedelta(minutes=1)
+    }
+
+    token = encode(payload, private_key, algorithm="RS256")
+    return jsonify({"encoded_body": token})
+
+
 if __name__ == "__main__":
-    app.run(host="localhost", port=5050)
+    app.run(host="localhost", port=5050, debug=True)
