@@ -30,7 +30,7 @@ def public_key_to_jwk(key_id, public_key):
     jwk = {
         "kty": "RSA",
         "use": "sig",
-        "kid": key_id,
+        "kid": f"{key_id}",
         "alg": "RS256",
         "n": n,
         "e": e,
@@ -56,13 +56,16 @@ def encoded_message(key_id):
 
     # Create a JWT
     payload = {
-        "sub": "1234567890",
-        "name": "John Doe",
+        "sub": f"1234567890{key_id}",
+        "name": f"John Doe {key_id}",
         "iat": datetime.utcnow(),
         "exp": datetime.utcnow() + timedelta(minutes=1)
     }
+    headers = {
+        "kid": f"{key_id}"
+    }
 
-    token = encode(payload, private_key, algorithm="RS256")
+    token = encode(payload, private_key, algorithm="RS256", headers=headers)
     return jsonify({"encoded_body": token})
 
 
